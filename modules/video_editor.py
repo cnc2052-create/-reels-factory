@@ -1,9 +1,10 @@
 """
 video_editor.py
 - Pillow로 background.jpg + overlay_text 합성 → 임시 PNG 저장
-- FFmpeg으로 이미지 + bgm.mp3 → 7초 MP4 생성
+- FFmpeg으로 이미지 + assets/ 내 MP3 랜덤 선택 → 7초 MP4 생성
 """
 import os
+import random
 import subprocess
 import textwrap
 from pathlib import Path
@@ -15,9 +16,17 @@ ASSETS_DIR = BASE_DIR / "assets"
 OUTPUT_DIR = BASE_DIR / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
-BG_PATH    = ASSETS_DIR / "background.jpg"
-FONT_PATH  = ASSETS_DIR / "font.ttf"
-BGM_PATH   = ASSETS_DIR / "bgm.mp3"
+BG_PATH   = ASSETS_DIR / "background.jpg"
+FONT_PATH = ASSETS_DIR / "font.ttf"
+
+
+def _pick_random_bgm() -> Path:
+    """assets/ 안의 MP3 파일 중 하나를 랜덤으로 반환한다."""
+    mp3_files = list(ASSETS_DIR.glob("*.mp3"))
+    if not mp3_files:
+        raise FileNotFoundError(f"assets/ 폴더에 MP3 파일이 없습니다: {ASSETS_DIR}")
+    chosen = random.choice(mp3_files)
+    return chosen
 
 # 영상 설정
 VIDEO_DURATION = 7          # 초
@@ -124,14 +133,17 @@ def compose_image(overlay_text: str, index: int) -> Path:
 
 
 def create_video(image_path: Path, index: int) -> Path:
-    """FFmpeg으로 이미지 + BGM → 7초 MP4."""
+    """FFmpeg으로 이미지 + 랜덤 BGM → 7초 MP4."""
     output_path = OUTPUT_DIR / f"output_{index}.mp4"
+
+    bgm_path = _pick_random_bgm()
+    print(f"    BGM 선택: {bgm_path.name}")
 
     cmd = [
         "ffmpeg", "-y",
         "-loop", "1",
         "-i", str(image_path),
-        "-i", str(BGM_PATH),
+        "-i", str(bgm_path),
         "-c:v", "libx264",
         "-tune", "stillimage",
         "-c:a", "aac",
