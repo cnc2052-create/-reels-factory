@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(ffmpeg -version 2>&1)"
+    ]
+  }
+}
