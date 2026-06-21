@@ -17,7 +17,6 @@ from openai import OpenAI
 # 모듈 경로 추가
 sys.path.insert(0, str(Path(__file__).parent))
 from modules.video_editor import build_video
-from modules.buffer_publisher import publish_all
 
 load_dotenv()
 
@@ -103,41 +102,65 @@ def generate_content_plan(client: OpenAI) -> list[dict]:
 
 
 # ──────────────────────────────────────────
-# STEP 2: 영상 일괄 생성
+# STEP 2+3: 대량 생산 루프 (영상 제작 → Buffer 예약을 1개씩 처리)
 # ──────────────────────────────────────────
-def build_all_videos(content_list: list[dict]) -> list[Path]:
-    from pathlib import Path as P
+def create_bulk_reels(content_list: list[dict]):
+    """
+    20개 릴스를 하나씩 순서대로 처리한다.
+    영상 제작 완료 즉시 Buffer 예약까지 연결해 메모리 효율을 높인다.
+    """
+    from modules.buffer_publisher import schedule_post
+    import time
 
-    print(f"\n=== 영상 생성 시작 ({TOTAL_REELS}개) ===")
-    video_paths = []
+    print(f"\n{'='*50}")
+    print(f"대량 생산 루프 시작 — 총 {TOTAL_REELS}개")
+    print(f"{'='*50}")
 
-    for i, content in enumerate(content_list, start=1):
-        print(f"\n[{i:02d}/{TOTAL_REELS}] {content['theme']}")
+    results = []
+
+    for index, item in enumerate(content_list, start=1):
+        print(f"\n[{index:02d}/{TOTAL_REELS}] {item['theme']}")
+        print(f"  번째 릴스 영상 제작 시작합니다...")
+
         try:
-            vp = build_video(content["overlay_text"], i)
-            video_paths.append(vp)
+            # 실버 맞춤형 큰 자막 넣어서 이미지 합성 (Pillow)
+            # + 음악 입혀서 7초 영상으로 굽기 (FFmpeg)
+            video_path = build_video(item["overlay_text"], index)
+
+            # 버퍼 API로 내일부터 하루에 1개씩 순차 예약 배포 설정
+            # days_offset=index → 1일 뒤, 2일 뒤, 3일 뒤... 자동으로 날짜 분산!
+            schedule_post(
+                video_path=video_path,
+                caption=item["instagram_caption"],
+                day_offset=index,
+            )
+
+            print(f"  [{index:02d}/{TOTAL_REELS}] 완료 및 버퍼 예약 완료!")
+            results.append({"index": index, "theme": item["theme"], "status": "success"})
+
         except Exception as e:
-            print(f"  !! 영상 생성 실패: {e}")
-            video_paths.append(None)
+            print(f"  !! [{index:02d}] 실패: {e}")
+            results.append({"index": index, "theme": item["theme"], "status": "error", "error": str(e)})
 
-    success = sum(1 for v in video_paths if v is not None)
-    print(f"\n영상 생성 완료: {success}/{TOTAL_REELS}개 성공")
-    return video_paths
+        # API 과부하 방지용 1초 휴식
+        if index < TOTAL_REELS:
+            time.sleep(1)
 
+    # 최종 요약
+    success = sum(1 for r in results if r["status"] == "success")
+    print(f"\n{'='*50}")
+    print(f"전체 완료: {success}/{TOTAL_REELS}개 성공")
+    print(f"{'='*50}")
 
-# ──────────────────────────────────────────
-# STEP 3: Buffer 예약 발행
-# ──────────────────────────────────────────
-def schedule_all(content_list: list[dict], video_paths: list[Path]):
-    valid_pairs = [
-        (c, v) for c, v in zip(content_list, video_paths) if v is not None
-    ]
-    if not valid_pairs:
-        print("발행할 영상이 없습니다.")
-        return
+    # 결과 로그 저장
+    log_path = Path("output/bulk_results.json")
+    log_path.parent.mkdir(exist_ok=True)
+    with open(log_path, "w", encoding="utf-8") as f:
+        import json as _json
+        _json.dump(results, f, ensure_ascii=False, indent=2)
+    print(f"결과 로그 저장 → {log_path}")
 
-    contents, videos = zip(*valid_pairs)
-    publish_all(list(contents), list(videos))
+    return results
 
 
 # ──────────────────────────────────────────
@@ -171,16 +194,33 @@ def main():
         with open(PLAN_CACHE_PATH, encoding="utf-8") as f:
             content_list = json.load(f)
 
-    if mode in ("1", "3"):
-        video_paths = build_all_videos(content_list)
-    else:
-        # 기존 output/*.mp4 파일 목록 로드
-        from pathlib import Path as P
-        video_paths = [P(f"output/output_{i}.mp4") for i in range(1, TOTAL_REELS + 1)]
-        video_paths = [v if v.exists() else None for v in video_paths]
-
-    if mode in ("1", "4"):
-        schedule_all(content_list, video_paths)
+    if mode == "1":
+        # 핵심: 영상 제작 + Buffer 예약을 한 루프에서 1개씩 처리
+        create_bulk_reels(content_list)
+    elif mode == "3":
+        # 영상만 생성 (Buffer 예약 없이)
+        for i, item in enumerate(content_list, start=1):
+            print(f"\n[{i:02d}/{TOTAL_REELS}] {item['theme']}")
+            try:
+                build_video(item["overlay_text"], i)
+            except Exception as e:
+                print(f"  !! 실패: {e}")
+    elif mode == "4":
+        # 이미 생성된 영상으로 Buffer 예약만 실행
+        from modules.buffer_publisher import schedule_post
+        import time
+        for i, item in enumerate(content_list, start=1):
+            vp = Path(f"output/output_{i}.mp4")
+            if not vp.exists():
+                print(f"  [{i:02d}] 영상 없음, 건너뜀: {vp}")
+                continue
+            print(f"\n[{i:02d}/{TOTAL_REELS}] {item['theme']}")
+            try:
+                schedule_post(vp, item["instagram_caption"], day_offset=i)
+            except Exception as e:
+                print(f"  !! 실패: {e}")
+            if i < TOTAL_REELS:
+                time.sleep(1)
 
     print("\n모든 작업이 완료되었습니다.")
 
