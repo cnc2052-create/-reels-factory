@@ -1,0 +1,101 @@
+{
+  "channels": [
+    {
+      "active": true,
+      "id": "sera",
+      "name": "세라 건강상식",
+      "platforms": {
+        "instagram": {
+          "enabled": true,
+          "handle": "@aigononono",
+          "profile_id": "6a38ce7f5ab6d2f1065aa6ec"
+        },
+        "tiktok": {
+          "enabled": true,
+          "handle": "@silver_health",
+          "profile_id": ""
+        },
+        "youtube": {
+          "enabled": true,
+          "handle": "실버 건강상식",
+          "profile_id": ""
+        }
+      }
+    },
+    {
+      "active": false,
+      "id": "husband",
+      "name": "남편 인생조언",
+      "platforms": {
+        "instagram": {
+          "enabled": true,
+          "handle": "@silver_life",
+          "profile_id": ""
+        },
+        "tiktok": {
+          "enabled": true,
+          "handle": "@silver_life",
+          "profile_id": ""
+        },
+        "youtube": {
+          "enabled": true,
+          "handle": "노후 인생수업",
+          "profile_id": ""
+        }
+      }
+    },
+    {
+      "active": false,
+      "id": "autam",
+      "name": "아우탐 공식",
+      "platforms": {
+        "instagram": {
+          "enabled": true,
+          "handle": "@autam_official",
+          "profile_id": ""
+        },
+        "tiktok": {
+          "enabled": true,
+          "handle": "@autam_official",
+          "profile_id": ""
+        },
+        "youtube": {
+          "enabled": true,
+          "handle": "아우탐",
+          "profile_id": ""
+        }
+      }
+    },
+    {
+      "active": false,
+      "id": "minho",
+      "name": "민호",
+      "platforms": {
+        "instagram": {
+          "enabled": true,
+          "handle": "@autam_talk",
+          "profile_id": ""
+        },
+        "tiktok": {
+          "enabled": true,
+          "handle": "@autam_talk",
+          "profile_id": ""
+        },
+        "youtube": {
+          "enabled": true,
+          "handle": "민호",
+          "profile_id": ""
+        }
+      }
+    }
+  ],
+  "schedule": {
+    "custom_times_kst": [],
+    "mode": "preset",
+    "preset_times_kst": [
+      "09:00",
+      "14:00",
+      "19:00"
+    ]
+  }
+}

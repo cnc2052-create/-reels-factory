@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reels Factory — 관리자 대시보드</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ── 사이드바 ── -->
+<aside class="sidebar">
+  <div class="logo">
+    <span class="logo-icon">🎬</span>
+    <span class="logo-text">Reels Factory</span>
+    <span class="logo-badge">BETA</span>
+  </div>
+  <nav>
+    <a href="#section-plan"    class="nav-item active"><span class="nav-icon">📋</span><span>콘텐츠 기획</span></a>
+    <a href="#section-dalle"   class="nav-item"><span class="nav-icon">🎨</span><span>AI 배경 생성</span></a>
+    <a href="#section-images"  class="nav-item"><span class="nav-icon">🖼️</span><span>이미지 검수</span></a>
+    <a href="#section-video"   class="nav-item"><span class="nav-icon">🎥</span><span>영상 생성</span></a>
+    <a href="#section-buffer"  class="nav-item"><span class="nav-icon">📅</span><span>Buffer 예약</span></a>
+    <a href="#section-history" class="nav-item"><span class="nav-icon">🕐</span><span>생성 이력</span></a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="stat-row">
+      <span class="stat-label">기획안</span>
+      <span class="stat-value" id="stat-plan">{{ plan|length }}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">생성된 영상</span>
+      <span class="stat-value" id="stat-video">{{ plan|selectattr('_has_video')|list|length }}</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ── 메인 ── -->
+<main class="main">
+
+  <header class="topbar">
+    <h1 class="page-title">관리자 대시보드</h1>
+    <span class="topbar-divider">·</span>
+    <span class="topbar-sub">콘텐츠 기획 → 이미지 검수 → 영상 생성 → Buffer 예약</span>
+  </header>
+
+  <!-- STEP 1 -->
+  <section class="section-card" id="section-plan">
+    <div class="section-header">
+      <div class="step-badge">STEP 1</div>
+      <h2>📋 콘텐츠 기획</h2>
+      <span class="badge badge-blue">GPT-4o</span>
+    </div>
+    <div class="section-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>주제 카테고리</label>
+          <select id="category-select">
+            {% for cat in categories %}<option value="{{ cat }}">{{ cat }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>생성 개수</label>
+          <select id="count-select">
+            <option value="5">5개</option>
+            <option value="10">10개</option>
+            <option value="20" selected>20개 (한 달치)</option>
+          </select>
+        </div>
+        <div class="form-group" style="justify-content:flex-end">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary btn-md" id="btn-gen-plan" onclick="generatePlan()">
+            ✨ 콘텐츠 기획 생성
+          </button>
+        </div>
+      </div>
+      <div id="plan-status" class="status-bar hidden"></div>
+      <div id="plan-list">
+        {% if plan %}
+        <div class="plan-summary-header">
+          <span>총 {{ plan|length }}개 기획안</span>
+          <button class="btn btn-green btn-sm" onclick="createAllImages()">🖼️ 전체 이미지 생성</button>
+        </div>
+        <div class="theme-chips" id="theme-chips">
+          {% for item in plan %}
+          <div class="theme-chip {% if item._has_image %}has-img{% endif %}" id="chip-{{ loop.index }}" onclick="scrollToCard({{ loop.index }})">
+            <span class="chip-num">{{ loop.index }}</span>
+            <span>{{ item.theme }}</span>
+            {% if item._has_image %}<span class="chip-check">✓</span>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><div class="empty-icon">📋</div>카테고리를 선택하고 콘텐츠를 기획해 주세요.</div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- DALL-E 배경 생성 -->
+  <section class="section-card" id="section-dalle">
+    <div class="section-header">
+      <div class="step-badge" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">AI BG</div>
+      <h2>🎨 DALL-E 3 배경 이미지 생성</h2>
+      <span class="badge badge-yellow">GPT-4o + DALL-E 3</span>
+    </div>
+    <div class="section-body">
+      <div class="dalle-info-box">
+        <div class="dalle-info-icon">✨</div>
+        <div>
+          <strong>AI가 각 카드 주제에 맞는 프리미엄 배경을 생성합니다</strong>
+          <p>실버 커플 인물사진 · 골든아워 자연광 · 매거진급 퀄리티 · 1080×1920px</p>
+          <p style="color:var(--muted);font-size:11.5px;margin-top:4px">생성된 배경은 <code>assets/bg_card_N.jpg</code>에 저장되며 이미지 생성 시 자동 적용됩니다.</p>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+        <button class="btn btn-dalle btn-md" onclick="generateAllBgs()">
+          🎨 전체 배경 일괄 생성 (DALL-E 3)
+        </button>
+        <span style="color:var(--muted);font-size:12px;align-self:center">
+          카드 1개당 약 15~20초 소요 · HD 품질
+        </span>
+      </div>
+
+      <div id="bg-progress-wrap" class="progress-wrap hidden" style="margin-top:16px">
+        <div class="progress-label">
+          <span id="bg-progress-text">0 / 0 완료</span>
+          <span id="bg-progress-pct">0%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="bg-progress-fill" style="width:0%;background:linear-gradient(90deg,#7c3aed,#4f46e5)"></div>
+        </div>
+      </div>
+      <div id="bg-status" class="status-bar hidden"></div>
+
+      <!-- 생성된 배경 미리보기 그리드 -->
+      <div id="bg-preview-grid" class="bg-preview-grid">
+        {% for item in plan %}
+        <div class="bg-preview-item" id="bgprev-{{ loop.index }}">
+          <div class="bg-preview-thumb">
+            {% set bg_path = "assets/bg_card_" ~ loop.index ~ ".jpg" %}
+            <div class="bg-placeholder">
+              <span>{{ loop.index }}</span>
+            </div>
+          </div>
+          <div class="bg-preview-label">{{ item.theme[:12] }}</div>
+          <button class="btn-regen" onclick="regenSingleBg({{ loop.index }})" title="단독 재생성">↺</button>
+        </div>
+        {% endfor %}
+        {% if not plan %}
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="empty-icon">🎨</div>STEP 1에서 먼저 콘텐츠를 기획해 주세요.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="section-card" id="section-images">
+    <div class="section-header">
+      <div class="step-badge">STEP 2</div>
+      <h2>🖼️ 카드뉴스 이미지 검수</h2>
+      <span class="badge badge-green">Pillow 합성</span>
+    </div>
+    <div class="section-body">
+      <!-- 저장 현황 -->
+      <div class="storage-status-bar" id="storage-status-bar">
+        <div class="storage-stat">
+          <span class="storage-icon">🖼️</span>
+          <span class="storage-label">이미지</span>
+          <span class="storage-count" id="stat-img-count">{{ plan | selectattr('_has_image') | list | length }}</span>
+          <span class="storage-total">/ {{ plan | length }} 저장 완료</span>
+        </div>
+        <div class="storage-divider"></div>
+        <div class="storage-stat">
+          <span class="storage-icon">🎥</span>
+          <span class="storage-label">영상</span>
+          <span class="storage-count" id="stat-vid-count">{{ plan | selectattr('_has_video') | list | length }}</span>
+          <span class="storage-total">/ {{ plan | length }} 저장 완료</span>
+        </div>
+        <div class="storage-stat">
+          <span class="storage-icon">📝</span>
+          <span class="storage-label">캡션</span>
+          <span class="storage-count" id="stat-cap-count">{{ plan | selectattr('_has_caption') | list | length }}</span>
+          <span class="storage-total">/ {{ plan | length }} 저장 완료</span>
+        </div>
+        <div class="storage-divider"></div>
+        <div class="storage-path">
+          <span class="path-label">저장위치</span>
+          <code>output/images</code>
+          <span style="color:var(--muted-2)">·</span>
+          <code>output/videos</code>
+        </div>
+      </div>
+
+      <!-- 툴바 -->
+      <div class="section-toolbar" style="margin-top:14px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <label class="select-all-label">
+            <input type="checkbox" id="chk-all" onchange="toggleSelectAll(this.checked)">
+            전체 선택
+          </label>
+          <span class="selected-badge hidden" id="selected-badge">0개 선택됨</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-md" onclick="createAllImages()">🖼️ 전체 이미지 생성</button>
+          <button class="btn btn-zip btn-md" onclick="downloadSelectedZip()" id="btn-dl-selected" disabled>
+            ⬇ 선택 ZIP
+          </button>
+          <button class="btn btn-zip-all btn-md" onclick="downloadAllZip()">
+            📦 전체 ZIP
+          </button>
+        </div>
+      </div>
+      <div id="img-progress-wrap" class="progress-wrap hidden">
+        <div class="progress-label">
+          <span id="img-progress-text">0 / 0 완료</span>
+          <span id="img-progress-pct">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="img-progress-fill" style="width:0%"></div></div>
+      </div>
+      <div id="img-status" class="status-bar hidden"></div>
+
+      <div class="card-grid" id="card-grid">
+        {% for item in plan %}
+        <div class="card-thumb" id="thumb-{{ loop.index }}" data-index="{{ loop.index }}">
+          <!-- 선택 체크박스 -->
+          <label class="card-checkbox" onclick="event.stopPropagation()">
+            <input type="checkbox" data-index="{{ loop.index }}"
+                   onchange="toggleCard({{ loop.index }}, this.checked)">
+            <span class="card-checkbox-mark"></span>
+          </label>
+
+          <div class="thumb-inner" onclick="openImageModal({{ loop.index }}, '{{ item.theme|e }}')">
+            {% if item._has_image %}
+            <img src="/output/images/card_{{ loop.index }}.jpg?t={{ now }}" alt="{{ item.theme }}" loading="lazy">
+            <div class="thumb-overlay"><span class="thumb-overlay-icon">🔍</span></div>
+            {% else %}
+            <div class="thumb-placeholder" onclick="event.stopPropagation(); createSingleImage({{ loop.index }})">
+              <span class="placeholder-icon">🖼️</span>
+              <span class="placeholder-text">클릭하여 생성</span>
+              <span class="placeholder-num">{{ loop.index }}</span>
+            </div>
+            {% endif %}
+          </div>
+          <div class="thumb-info">
+            <div class="thumb-title">{{ loop.index }}. {{ item.theme[:14] }}</div>
+            <div id="actions-{{ loop.index }}">
+              {% if item._has_video %}
+              <div class="video-status done"><span class="status-dot"></span>영상 저장 완료</div>
+              <div class="thumb-actions" style="margin-top:8px">
+                <button class="btn-preview" onclick="openVideoModal({{ loop.index }}, '{{ item.theme|e }}')">
+                  ▶ 영상 미리보기
+                </button>
+                <a href="/download/video/{{ loop.index }}" download class="btn-download">
+                  ⬇ 다운로드
+                </a>
+              </div>
+              {% else %}
+              <div class="video-status pending"><span class="status-dot"></span>영상 미생성</div>
+              <div class="thumb-actions" style="margin-top:8px">
+                <button class="btn btn-outline btn-sm" style="width:100%" onclick="createSingleVideo({{ loop.index }})">
+                  🎥 영상 생성
+                </button>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        {% if not plan %}
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="empty-icon">🖼️</div>STEP 1에서 먼저 콘텐츠를 기획해 주세요.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="section-card" id="section-video">
+    <div class="section-header">
+      <div class="step-badge">STEP 3</div>
+      <h2>🎥 영상 생성</h2>
+      <span class="badge badge-green">FFmpeg</span>
+    </div>
+    <div class="section-body">
+      <p class="section-desc" style="margin-bottom:16px">검수 완료된 이미지를 10초 MP4 영상으로 변환합니다.</p>
+      <button class="btn btn-primary btn-lg" onclick="createAllVideos()">🚀 전체 영상 일괄 생성</button>
+      <div id="video-progress-wrap" class="progress-wrap hidden">
+        <div class="progress-label">
+          <span id="video-progress-text">0 / 0 완료</span>
+          <span id="video-progress-pct">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill green" id="video-progress-fill" style="width:0%"></div></div>
+      </div>
+      <div id="video-status" class="status-bar hidden"></div>
+    </div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="section-card" id="section-buffer">
+    <div class="section-header">
+      <div class="step-badge">STEP 4</div>
+      <h2>📅 Buffer 멀티플랫폼 예약</h2>
+      <span class="badge badge-orange">Instagram · TikTok · YouTube</span>
+    </div>
+    <div class="section-body">
+
+      <!-- 채널 선택 -->
+      <div class="buffer-config-block">
+        <div class="buffer-config-label">📺 채널 선택</div>
+        <div class="buffer-channel-row">
+          <select id="buffer-channel-select" class="buffer-select" onchange="onChannelChange()">
+            {% for ch in channels %}
+            <option value="{{ ch.id }}" {% if ch.active %}selected{% endif %}>{{ ch.name }}</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="openChannelSettings()">⚙ 채널 설정</button>
+        </div>
+        <div id="channel-preview" class="channel-preview-grid">
+          {% for ch in channels %}{% if ch.active %}
+          <div class="channel-preview-item"><span class="cp-icon">📷</span><span class="cp-handle">{{ ch.platforms.instagram.handle }}</span></div>
+          <div class="channel-preview-item"><span class="cp-icon">🎵</span><span class="cp-handle">{{ ch.platforms.tiktok.handle }}</span></div>
+          <div class="channel-preview-item"><span class="cp-icon">▶️</span><span class="cp-handle">{{ ch.platforms.youtube.handle }}</span></div>
+          {% endif %}{% endfor %}
+        </div>
+      </div>
+
+      <!-- 게시 플랫폼 선택 -->
+      <div class="buffer-config-block">
+        <div class="buffer-config-label">📡 게시 플랫폼</div>
+        <div class="platform-checkboxes">
+          <label class="platform-check-item">
+            <input type="checkbox" id="plat-instagram" checked>
+            <span>📷 Instagram Reels</span>
+          </label>
+          <label class="platform-check-item">
+            <input type="checkbox" id="plat-tiktok" checked>
+            <span>🎵 TikTok</span>
+          </label>
+          <label class="platform-check-item">
+            <input type="checkbox" id="plat-youtube" checked>
+            <span>▶️ YouTube Shorts</span>
+          </label>
+          <div style="display:flex;gap:6px;margin-left:auto">
+            <button class="btn btn-ghost btn-xs" onclick="setAllPlatforms(true)">전체 선택</button>
+            <button class="btn btn-ghost btn-xs" onclick="setAllPlatforms(false)">전체 해제</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 예약 시간 -->
+      <div class="buffer-config-block">
+        <div class="buffer-config-label">⏰ 예약 시간 (KST)</div>
+        <div class="schedule-mode-row">
+          <label class="radio-pill"><input type="radio" name="sched-mode" value="preset" checked onchange="onSchedModeChange()"> 하루 3회 (09:00 · 14:00 · 19:00)</label>
+          <label class="radio-pill"><input type="radio" name="sched-mode" value="custom" onchange="onSchedModeChange()"> 직접 입력</label>
+        </div>
+        <div id="custom-times-wrap" class="hidden" style="margin-top:10px">
+          <input type="text" id="custom-times-input" class="buffer-select"
+            placeholder="09:00, 12:00, 18:00 (쉼표 구분)" style="width:100%;max-width:320px">
+        </div>
+      </div>
+
+      <!-- 업로드 항목 -->
+      <div class="buffer-upload-info">
+        <span class="upload-chip">🎬 영상</span>
+        <span class="upload-plus">+</span>
+        <span class="upload-chip">📝 캡션</span>
+        <span class="upload-plus">+</span>
+        <span class="upload-chip">#️⃣ 해시태그</span>
+        <span class="upload-badge">동시 업로드</span>
+      </div>
+
+      <!-- 발행 버튼 -->
+      <button class="btn btn-lg btn-buffer" onclick="scheduleBuffer()">
+        📤 전체 Buffer 예약 발행
+      </button>
+
+      <!-- 플랫폼별 진행 -->
+      <div id="buffer-progress-wrap" class="buffer-platform-progress hidden">
+        <div class="bpp-row">
+          <span class="bpp-label">전체</span>
+          <div class="progress-bar" style="flex:1;margin:0 10px"><div class="progress-fill orange" id="buffer-progress-fill" style="width:0%"></div></div>
+          <span id="buffer-progress-pct" class="bpp-pct">0%</span>
+        </div>
+        <div class="bpp-platform-grid">
+          <div class="bpp-plat-row"><span>📷 Instagram</span><span id="bpp-ig-stat" class="bpp-stat">0 / 0</span></div>
+          <div class="bpp-plat-row"><span>🎵 TikTok</span><span id="bpp-tt-stat" class="bpp-stat">0 / 0</span></div>
+          <div class="bpp-plat-row"><span>▶️ YouTube</span><span id="bpp-yt-stat" class="bpp-stat">0 / 0</span></div>
+        </div>
+        <div id="buffer-progress-text" class="bpp-message">준비 중…</div>
+      </div>
+
+      <div id="buffer-status" class="status-bar hidden"></div>
+    </div>
+  </section>
+
+  <!-- ── 채널 설정 모달 ── -->
+  <div class="modal-overlay hidden" id="channel-settings-modal" onclick="closeChannelSettings()">
+    <div class="modal" style="max-width:680px;width:96%" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3>⚙ 채널 설정 — Buffer Profile ID</h3>
+        <button class="modal-close" onclick="closeChannelSettings()">✕</button>
+      </div>
+      <div class="modal-body" style="padding:20px">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:16px">
+          Buffer 대시보드 → 각 채널 URL에서 profile_id를 복사하세요.
+          (예: bufferapp.com/app/profile/<strong>5f2c…</strong>/overview)
+        </p>
+        <div id="channel-settings-list"></div>
+        <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+          <button class="btn btn-outline" onclick="closeChannelSettings()">취소</button>
+          <button class="btn btn-primary" onclick="saveChannelSettings()">💾 저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 이력 -->
+  <section class="section-card" id="section-history">
+    <div class="section-header">
+      <h2>🕐 생성 이력</h2>
+      <button class="btn btn-ghost btn-sm" onclick="refreshHistory()">↻ 새로고침</button>
+    </div>
+    <div class="section-body">
+      <div id="history-list">
+        {% if history %}
+          {% for item in history %}
+          <div class="history-item">
+            <span class="history-type">{{ item.type }}</span>
+            <span class="history-detail">{{ item.get('theme', item.get('category', '')) }}{% if item.get('count') %} — {{ item.count }}개{% endif %}</span>
+            <span class="history-time">{{ item.timestamp }}</span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state"><div class="empty-icon">🕐</div>이력이 없습니다.</div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── 이미지 확대 모달 ── -->
+<div class="modal-overlay hidden" id="img-modal-overlay" onclick="closeImageModal()">
+  <div class="modal modal-img" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="img-modal-title">카드뉴스 미리보기</h3>
+      <button class="modal-close" onclick="closeImageModal()">✕</button>
+    </div>
+    <div class="modal-img-body">
+      <img id="img-modal-src" src="" alt="">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-sm" id="img-modal-video-btn" onclick="modalMakeVideo()">🎥 이 카드 영상 생성</button>
+      <button class="btn btn-outline btn-sm" onclick="closeImageModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 캡션 모달 ── -->
+<div class="modal-overlay hidden" id="caption-modal" onclick="closeCaptionModal()">
+  <div class="modal" style="max-width:560px;width:95%" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>📝 캡션 보기 / 수정 — <span id="caption-modal-index"></span>번</h3>
+      <button class="modal-close" onclick="closeCaptionModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">
+        인스타그램 캡션을 수정할 수 있습니다. Buffer 예약 시 이 내용이 전송됩니다.
+      </p>
+      <textarea id="caption-textarea"
+        style="width:100%;height:280px;resize:vertical;font-size:13px;
+               line-height:1.7;padding:14px;border:1.5px solid #e2e8f0;
+               border-radius:10px;font-family:inherit;box-sizing:border-box"
+        placeholder="캡션을 입력하세요…"></textarea>
+      <div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeCaptionModal()">취소</button>
+        <button class="btn btn-primary" id="caption-save-btn">💾 저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 영상 미리보기 모달 ── -->
+<div class="modal-overlay hidden" id="video-modal-overlay" onclick="closeVideoModal()">
+  <div class="modal modal-video" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="video-modal-title">영상 미리보기</h3>
+      <button class="modal-close" onclick="closeVideoModal()">✕</button>
+    </div>
+    <div class="modal-video-body">
+      <video id="modal-video" controls playsinline>
+        <source id="modal-video-src" src="" type="video/mp4">
+        브라우저가 비디오를 지원하지 않습니다.
+      </video>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-sm" id="modal-download-btn" onclick="downloadFromModal()">⬇ 다운로드</button>
+      <button class="btn btn-outline btn-sm" onclick="closeVideoModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="toast" class="toast hidden"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
