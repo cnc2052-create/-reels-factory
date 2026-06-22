@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: reels-factory
+    env: python
+    buildCommand: apt-get install -y ffmpeg && pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: BUFFER_ACCESS_TOKEN
+        sync: false
+      - key: BUFFER_PROFILE_ID
+        sync: false
+      - key: CONTENT_CATEGORY
+        value: 자기계발/동기부여
+      - key: PUBLISH_HOUR_UTC
+        value: "23"
+      - key: PUBLISH_MINUTE_UTC
+        value: "0"
