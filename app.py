@@ -482,6 +482,29 @@ def api_generate_plan():
         # 캡션 파일 저장
         _save_captions(plan)
 
+        # 노션 자동 저장
+        try:
+            from modules.notion_publisher import save_to_notion
+            channels_data = load_channels()
+            active_ch = next((c for c in channels_data.get("channels", []) if c.get("active")), {})
+            channel_name = active_ch.get("name", "세라 건강상식")
+            for i, item in enumerate(plan, start=1):
+                caption_full = item.get("instagram_caption", "")
+                lines = caption_full.strip().split("\n")
+                hashtag_line = next((l for l in reversed(lines) if l.strip().startswith("#")), "")
+                caption_body = caption_full.replace(hashtag_line, "").strip()
+                save_to_notion(
+                    title=item.get("title", f"콘텐츠 {i}"),
+                    channel=channel_name,
+                    category=category,
+                    video_filename=f"video_{i:02d}.mp4",
+                    caption=caption_body,
+                    hashtags=hashtag_line,
+                    platforms=["Instagram", "TikTok", "YouTube"],
+                )
+        except Exception as ne:
+            print(f"[Notion] 저장 실패: {ne}")
+
         for old in IMG_DIR.glob("card_*.jpg"):
             old.unlink(missing_ok=True)
 
