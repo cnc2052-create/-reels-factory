@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PomPom</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#000;--surface:#111;--surface2:#1c1c1e;--border:#2c2c2e;--border2:#3a3a3c;
+  --text:#f5f5f7;--text2:#98989f;--text3:#636366;
+  --accent:#40FFA7;--accent-dim:rgba(64,255,167,.1);
+  --red:#ff453a;--yellow:#ffd60a;--r:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(0,0,0,.75);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:0 24px;height:52px;
+  display:flex;align-items:center;gap:10px;
+}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-icon{width:26px;height:26px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.logo-name{font-size:1.05rem;font-weight:600;letter-spacing:-.01em}
+.logo-tag{font-size:.7rem;color:var(--accent);background:var(--accent-dim);padding:2px 8px;border-radius:20px;font-weight:600;border:1px solid rgba(64,255,167,.2)}
+#clock{font-size:.76rem;color:var(--text3);margin-left:auto;font-variant-numeric:tabular-nums}
+
+.container{max-width:860px;margin:0 auto;padding:28px 20px}
+
+.nav{display:flex;gap:2px;background:var(--surface2);border-radius:10px;padding:3px;width:fit-content;margin-bottom:26px}
+.tab{padding:7px 18px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:500;color:var(--text2);transition:all .15s;user-select:none}
+.tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.tab:hover:not(.active){color:var(--text)}
+
+.panel{display:none}.panel.active{display:block}
+.section-label{font-size:.68rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-left:2px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:14px}
+.card-body{padding:20px}
+.card-desc{font-size:.82rem;color:var(--text2);line-height:1.55;margin-bottom:18px}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.fi{display:flex;flex-direction:column;gap:5px}
+label{font-size:.7rem;font-weight:600;color:var(--text3);letter-spacing:.03em;text-transform:uppercase}
+select,input{
+  width:100%;padding:8px 11px;border-radius:8px;
+  border:1px solid var(--border2);background:var(--surface2);
+  color:var(--text);font-size:.84rem;font-family:inherit;
+  transition:border-color .15s;appearance:none;-webkit-appearance:none;
+}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2398989f' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+select:focus,input:focus{outline:none;border-color:var(--accent)}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;border:none;cursor:pointer;font-weight:600;font-size:.82rem;font-family:inherit;transition:all .15s;letter-spacing:-.01em}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover{background:#5fffc0;transform:translateY(-1px)}
+.btn-ghost{background:var(--surface2);color:var(--text2);border:1px solid var(--border2)}
+.btn-ghost:hover{color:var(--text)}
+.btn:disabled{opacity:.4;pointer-events:none}
+
+.upload-zone{border:1.5px dashed var(--border2);border-radius:10px;padding:26px 20px;text-align:center;cursor:pointer;transition:all .15s;color:var(--text2)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-dim)}
+.upload-zone img{max-height:150px;max-width:100%;border-radius:8px;margin-top:12px}
+
+.job-list{display:flex;flex-direction:column;gap:1px}
+.job-row{display:flex;align-items:center;gap:12px;padding:13px 16px;background:var(--surface2)}
+.job-row:first-child{border-radius:10px 10px 0 0}
+.job-row:last-child{border-radius:0 0 10px 10px}
+.job-row:only-child{border-radius:10px}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-done{background:var(--accent)}
+.dot-running{background:var(--yellow);animation:pulse 1.2s ease-in-out infinite}
+.dot-error{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.job-name{font-size:.86rem;font-weight:500;flex:1}
+.job-sub{font-size:.75rem;color:var(--text3);margin-top:2px}
+.job-id{font-size:.7rem;color:var(--text3);font-variant-numeric:tabular-nums}
+
+.progress{height:2px;background:var(--border);border-radius:1px;margin-top:7px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);width:45%;border-radius:1px;animation:pg 2s ease-in-out infinite alternate}
+@keyframes pg{to{width:80%}}
+
+.empty{text-align:center;color:var(--text3);padding:28px;font-size:.82rem}
+.spinner{display:inline-block;width:13px;height:13px;border:1.5px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.toast{position:fixed;bottom:22px;right:22px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:10px 16px;font-size:.81rem;color:var(--text);z-index:999;animation:su .2s ease;box-shadow:0 8px 32px rgba(0,0,0,.5);max-width:260px}
+.toast.err{border-color:var(--red);color:var(--red)}
+@keyframes su{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+@media(max-width:580px){.form-grid{grid-template-columns:1fr}.nav{width:100%}.tab{flex:1;text-align:center;padding:7px 10px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🎀</div>
+    <span class="logo-name">PomPom</span>
+    <span class="logo-tag">자동화</span>
+  </div>
+  <span id="clock"></span>
+</header>
+
+<div class="container">
+  <div class="nav">
+    <div class="tab active" onclick="switchTab('auto')">자동 생성</div>
+    <div class="tab" onclick="switchTab('manual')">수동 업로드</div>
+    <div class="tab" onclick="switchTab('history')">기록</div>
+  </div>
+
+  <!-- 자동 생성 -->
+  <div class="panel active" id="panel-auto">
+    <p class="section-label">AI 자동 기획</p>
+    <div class="card">
+      <div class="card-body">
+        <p class="card-desc">AI가 트렌드 제품을 찾아 스크립트 작성 → 영상 제작 → 인스타·틱톡·유튜브 업로드까지 자동으로 처리합니다.</p>
+        <div class="form-grid">
+          <div class="fi">
+            <label>카테고리</label>
+            <select id="auto-niche">
+              <option value="beauty">뷰티</option>
+              <option value="health_fitness">건강 / 피트니스</option>
+              <option value="home_living">홈리빙</option>
+              <option value="fashion">패션</option>
+              <option value="food">푸드</option>
+            </select>
+          </div>
+          <div class="fi">
+            <label>페르소나</label>
+            <select id="auto-persona">
+              <option value="pompom_beauty">뷰티폼 (인스타)</option>
+              <option value="pompom_health">헬스폼</option>
+              <option value="pompom_home">홈폼</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-auto" onclick="startAuto()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          자동 생성 시작
+        </button>
+      </div>
+    </div>
+    <div id="auto-jobs"></div>
+  </div>
+
+  <!-- 수동 업로드 -->
+  <div class="panel" id="panel-manual">
+    <p class="section-label">수동 영상 생성</p>
+    <div class="card">
+      <div class="card-body">
+        <p class="card-desc">상품 사진 1장을 올리면 AI가 스크립트를 쓰고 릴스 영상으로 만들어드립니다.</p>
+        <div class="upload-zone" id="upload-zone"
+          onclick="document.getElementById('img-input').click()"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="handleDrop(event)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          <div style="font-size:.84rem;font-weight:500;margin-top:7px">사진을 끌어다 놓거나 클릭해서 선택</div>
+          <div style="font-size:.74rem;color:var(--text3);margin-top:3px">JPG · PNG · WEBP</div>
+          <img id="preview-img" style="display:none">
+        </div>
+        <input type="file" id="img-input" accept="image/*" style="display:none" onchange="previewImage(this)">
+
+        <div class="form-grid" style="margin-top:14px">
+          <div class="fi">
+            <label>제품명</label>
+            <input type="text" id="m-product" placeholder="예: 메디힐 마스크팩">
+          </div>
+          <div class="fi">
+            <label>가격 (원)</label>
+            <input type="number" id="m-price" placeholder="15900">
+          </div>
+        </div>
+        <div class="fi" style="margin-bottom:12px">
+          <label>바이럴 포인트</label>
+          <input type="text" id="m-desc" placeholder="예: 수분 가득 마스크팩 최저가">
+        </div>
+        <div class="fi" style="margin-bottom:18px">
+          <label>카테고리</label>
+          <select id="m-niche">
+            <option value="beauty">뷰티</option>
+            <option value="health_fitness">건강</option>
+            <option value="home_living">홈리빙</option>
+            <option value="fashion">패션</option>
+            <option value="food">푸드</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" id="btn-manual" onclick="startManual()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+          영상 생성하기
+        </button>
+      </div>
+    </div>
+    <div id="manual-jobs"></div>
+  </div>
+
+  <!-- 기록 -->
+  <div class="panel" id="panel-history">
+    <p class="section-label">생성 기록</p>
+    <div class="card">
+      <div class="card-body" style="padding-bottom:8px">
+        <div id="history-list">
+          <div class="empty">아직 생성한 영상이 없습니다</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// 시계
+setInterval(()=>{
+  const d=new Date();
+  document.getElementById('clock').textContent=
+    d.toLocaleDateString('ko-KR',{month:'short',day:'numeric'})+' '+
+    d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+},1000);
+
+function switchTab(id){
+  ['auto','manual','history'].forEach(i=>{
+    document.querySelectorAll('.tab')[['auto','manual','history'].indexOf(i)].classList.toggle('active',i===id);
+    document.getElementById('panel-'+i).classList.toggle('active',i===id);
+  });
+  if(id==='history')renderHistory();
+}
+
+// 이미지 미리보기
+function previewImage(input){
+  const f=input.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{const img=document.getElementById('preview-img');img.src=e.target.result;img.style.display='block'};
+  r.readAsDataURL(f);
+}
+function handleDrop(e){
+  e.preventDefault();document.getElementById('upload-zone').classList.remove('drag');
+  const f=e.dataTransfer.files[0];if(!f)return;
+  const dt=new DataTransfer();dt.items.add(f);
+  document.getElementById('img-input').files=dt.files;previewImage({files:[f]});
+}
+
+// 작업 관리
+const allJobs={};
+function addJob(jobId,container){
+  allJobs[jobId]={id:jobId,status:'running'};
+  renderRow(jobId,container);
+  const t=setInterval(async()=>{
+    try{
+      const r=await fetch('/api/job/'+jobId);
+      if(!r.ok)return;
+      const d=await r.json();
+      allJobs[jobId]=d;renderRow(jobId,container);
+      if(d.status==='done'){clearInterval(t);toast('✅ 영상 완성 — '+(d.product||''))}
+      else if(d.status==='error'){clearInterval(t);toast('❌ '+d.error,'err')}
+    }catch{}
+  },3000);
+}
+function renderRow(jobId,containerId){
+  const j=allJobs[jobId];
+  let el=document.getElementById('jr-'+jobId);
+  const c=document.getElementById(containerId);
+  if(!el){
+    if(!c.querySelector('.job-list')){const l=document.createElement('div');l.className='job-list';c.appendChild(l)}
+    el=document.createElement('div');el.id='jr-'+jobId;el.className='job-row';
+    c.querySelector('.job-list').prepend(el);
+  }
+  const dc=j.status==='done'?'dot-done':j.status==='error'?'dot-error':'dot-running';
+  el.innerHTML=`
+    <div class="dot ${dc}"></div>
+    <div style="flex:1">
+      <div class="job-name">${j.product||j.message||'처리 중...'}</div>
+      <div class="job-sub">${j.hook||j.message||''}</div>
+      ${j.status==='running'?'<div class="progress"><div class="progress-fill"></div></div>':''}
+    </div>
+    <div class="job-id">${j.id}</div>`;
+}
+
+async function startAuto(){
+  const btn=document.getElementById('btn-auto');
+  btn.disabled=true;toast('AI 자동 생성 시작...');
+  try{
+    const r=await fetch('/api/generate',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({niche:document.getElementById('auto-niche').value,persona:document.getElementById('auto-persona').value})
+    });
+    const d=await r.json();
+    if(d.job_id)addJob(d.job_id,'auto-jobs');
+    else toast('오류: '+JSON.stringify(d),'err');
+  }catch(e){toast('요청 실패: '+e.message,'err')}
+  setTimeout(()=>btn.disabled=false,2000);
+}
+
+async function startManual(){
+  const f=document.getElementById('img-input').files[0];
+  if(!f){toast('사진을 먼저 선택해주세요','err');return;}
+  const p=document.getElementById('m-product').value.trim();
+  if(!p){toast('제품명을 입력해주세요','err');return;}
+  const btn=document.getElementById('btn-manual');
+  btn.disabled=true;toast('영상 생성 중...');
+  const fd=new FormData();
+  fd.append('image',f);fd.append('product_name',p);
+  fd.append('price',document.getElementById('m-price').value||'0');
+  fd.append('description',document.getElementById('m-desc').value);
+  fd.append('niche',document.getElementById('m-niche').value);
+  try{
+    const r=await fetch('/api/manual',{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.job_id)addJob(d.job_id,'manual-jobs');
+    else toast('오류: '+JSON.stringify(d),'err');
+  }catch(e){toast('요청 실패: '+e.message,'err')}
+  setTimeout(()=>btn.disabled=false,2000);
+}
+
+function renderHistory(){
+  const jobs=Object.values(allJobs);
+  const el=document.getElementById('history-list');
+  if(!jobs.length){el.innerHTML='<div class="empty">아직 생성한 영상이 없습니다</div>';return;}
+  el.innerHTML='<div class="job-list">'+jobs.map(j=>`
+    <div class="job-row">
+      <div class="dot ${j.status==='done'?'dot-done':j.status==='error'?'dot-error':'dot-running'}"></div>
+      <div style="flex:1"><div class="job-name">${j.product||'-'}</div><div class="job-sub">${j.caption?.slice(0,60)||''}</div></div>
+    </div>`).join('')+'</div>';
+}
+
+function toast(msg,type=''){
+  const t=document.createElement('div');t.className='toast'+(type?' '+type:'');t.textContent=msg;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),3200);
+}
+</script>
+</body>
+</html>
