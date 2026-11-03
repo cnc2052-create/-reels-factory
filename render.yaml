@@ -1,19 +1,27 @@
 services:
   - type: web
-    name: reels-factory
+    name: pompom-dashboard
     env: python
-    buildCommand: apt-get install -y ffmpeg && pip install -r requirements.txt
-    startCommand: python app.py
+    buildCommand: apt-get install -y ffmpeg libass-dev && pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     envVars:
-      - key: OPENAI_API_KEY
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: NOTION_TOKEN
+        sync: false
+      - key: NOTION_DB_ID
+        sync: false
+      - key: PEXELS_API_KEY
+        sync: false
+      - key: IG_ACCESS_TOKEN
+        sync: false
+      - key: IG_USER_ID
+        sync: false
+      - key: TIKTOK_ACCESS_TOKEN
+        sync: false
+      - key: TIKTOK_OPEN_ID
         sync: false
       - key: BUFFER_ACCESS_TOKEN
         sync: false
       - key: BUFFER_PROFILE_ID
         sync: false
-      - key: CONTENT_CATEGORY
-        value: 자기계발/동기부여
-      - key: PUBLISH_HOUR_UTC
-        value: "23"
-      - key: PUBLISH_MINUTE_UTC
-        value: "0"
