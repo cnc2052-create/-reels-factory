@@ -72,7 +72,9 @@ def api_generate():
 
             # FFmpeg 영상 생성
             from pompom.make_video import make_reel
-            out = f"C:/pompom_out/{job_id}_final.mp4"
+            from pompom.make_video import VIDEO_DIR
+            os.makedirs(VIDEO_DIR, exist_ok=True)
+            out = f"{VIDEO_DIR}/{job_id}_final.mp4"
             make_reel(script, out, duration=20)
 
             jobs[job_id].update({
@@ -129,7 +131,9 @@ def api_manual():
 
             # 영상 생성 (업로드된 이미지를 배경으로 활용)
             from pompom.make_video import make_reel_from_image
-            out = f"C:/pompom_out/{job_id}_manual.mp4"
+            from pompom.make_video import VIDEO_DIR
+            os.makedirs(VIDEO_DIR, exist_ok=True)
+            out = f"{VIDEO_DIR}/{job_id}_manual.mp4"
             ok = make_reel_from_image(str(img_path), script, out)
             if not ok:
                 from pompom.make_video import make_reel
