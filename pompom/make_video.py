@@ -8,9 +8,35 @@ FFmpeg로 릴스 영상 생성 — 외부 API 없이 로컬에서 완전 생성
 import subprocess, json, os, sys, tempfile
 from pathlib import Path
 
-FONT_PATH = "C:/Windows/Fonts/malgun.ttf"
 OUTPUT_DIR = Path(__file__).parent / "output"
 ASSETS_DIR = Path(__file__).parent.parent / "assets"
+
+# OS별 출력 폴더 / 한글 폰트 (Windows: 맑은고딕, Linux: 나눔고딕 또는 WenQuanYi)
+if os.name == "nt":
+    VIDEO_DIR = os.getenv("POMPOM_OUT_DIR", "C:/pompom_out")
+    FONTS_DIR = "C:/Windows/Fonts"
+    FONT_NAME = "Malgun Gothic"
+else:
+    VIDEO_DIR = os.getenv("POMPOM_OUT_DIR", str(Path(__file__).parent.parent / "output" / "videos"))
+    FONTS_DIR = "/usr/share/fonts"
+    FONT_NAME = os.getenv(
+        "POMPOM_FONT",
+        "NanumGothic" if Path("/usr/share/fonts/truetype/nanum").exists() else "WenQuanYi Zen Hei",
+    )
+
+
+def _sub_filter(srt_path: str) -> str:
+    """subtitles 필터 — OS별 한글 폰트 지정"""
+    srt_escaped = srt_path.replace("\\", "/").replace(":", "\\:")
+    fonts_escaped = FONTS_DIR.replace(":", "\\:")
+    return (
+        f"subtitles='{srt_escaped}'"
+        f":fontsdir='{fonts_escaped}'"
+        f":force_style='FontName={FONT_NAME},FontSize=22,"
+        f"PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,"
+        f"BackColour=&H80000000,Bold=1,Outline=2,Shadow=1,"
+        f"Alignment=2,MarginV=80'"
+    )
 
 
 def _write_srt(captions: list, duration: int, srt_path: str):
@@ -38,7 +64,7 @@ def make_reel(script: dict, output_path: str, duration: int = 20) -> bool:
     captions = script.get("remotion_captions", [])
     product_name = script.get("product", {}).get("name", "추천템")
 
-    out_dir = "C:/pompom_out"
+    out_dir = VIDEO_DIR
     os.makedirs(out_dir, exist_ok=True)
 
     # SRT 자막 파일 생성
@@ -56,18 +82,7 @@ def make_reel(script: dict, output_path: str, duration: int = 20) -> bool:
             import random
             bgm = str(random.choice(mp3s)).replace("\\", "/")
 
-    # subtitles 필터 — 한글 폰트 지정
-    # force_style로 폰트, 크기, 색상 제어
-    srt_escaped = srt_path.replace("\\", "/").replace(":", "\\:")
-    font_escaped = FONT_PATH.replace("\\", "/").replace(":", "\\:")
-    sub_filter = (
-        f"subtitles='{srt_escaped}'"
-        f":fontsdir='C\\:/Windows/Fonts'"
-        f":force_style='FontName=Malgun Gothic,FontSize=22,"
-        f"PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,"
-        f"BackColour=&H80000000,Bold=1,Outline=2,Shadow=1,"
-        f"Alignment=2,MarginV=80'"
-    )
+    sub_filter = _sub_filter(srt_path)
 
     vf = sub_filter
 
@@ -146,7 +161,7 @@ def make_reel_from_image(image_path: str, script: dict, output_path: str, durati
     captions = script.get("remotion_captions", [])
     product_name = script.get("product", {}).get("name", "추천템")
 
-    out_dir = "C:/pompom_out"
+    out_dir = VIDEO_DIR
     os.makedirs(out_dir, exist_ok=True)
 
     srt_path = f"{out_dir}/manual_captions.srt"
@@ -156,15 +171,7 @@ def make_reel_from_image(image_path: str, script: dict, output_path: str, durati
     _write_srt(all_captions, duration, srt_path)
 
     img_escaped = image_path.replace("\\", "/")
-    srt_escaped = srt_path.replace("\\", "/").replace(":", "\\:")
-    sub_filter = (
-        f"subtitles='{srt_escaped}'"
-        f":fontsdir='C\\:/Windows/Fonts'"
-        f":force_style='FontName=Malgun Gothic,FontSize=22,"
-        f"PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,"
-        f"BackColour=&H80000000,Bold=1,Outline=2,Shadow=1,"
-        f"Alignment=2,MarginV=80'"
-    )
+    sub_filter = _sub_filter(srt_path)
     # 이미지를 9:16으로 크롭/패드 후 자막 오버레이
     vf = f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,{sub_filter}"
 
@@ -195,7 +202,7 @@ if __name__ == "__main__":
     with open(script_path, encoding="utf-8") as f:
         script = json.load(f)
 
-    out_dir = "C:/pompom_out"
+    out_dir = VIDEO_DIR
     os.makedirs(out_dir, exist_ok=True)
     output = f"{out_dir}/test_reel.mp4"
     ok = make_reel(script, output, duration=20)
